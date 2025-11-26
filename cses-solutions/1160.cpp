@@ -4,7 +4,6 @@ Code: 1160
 Time (YYYY-MM-DD-hh.mm.ss): 2025-11-26-08.01.16
 *******************************************************************************/
 #include<bits/stdc++.h>
-#define int long long
 using namespace std;
 
 struct DSU{
