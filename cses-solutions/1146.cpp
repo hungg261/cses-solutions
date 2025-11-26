@@ -13,7 +13,7 @@ int solve(int N, int bitpos){
     int rep = N >> (bitpos + 1);
     int cnt = rep << bitpos;
 
-    return cnt + max(0LL, (N % cycle) - (1LL << bitpos) + 1);
+    return cnt + max(0LL, (N & (cycle - 1)) - (1LL << bitpos) + 1);
 }
 
 signed main(){
