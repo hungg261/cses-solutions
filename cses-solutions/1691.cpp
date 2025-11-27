@@ -1,34 +1,40 @@
 /******************************************************************************
 Link: https://cses.fi/problemset/task/1691
 Code: 1691
-Time (YYYY-MM-DD-hh.mm.ss): 2025-10-03-10.06.06
+Time (YYYY-MM-DD-hh.mm.ss): 2025-11-27-22.51.16
 *******************************************************************************/
 #include<bits/stdc++.h>
 using namespace std;
 
-struct To{
-    int v, id;
-};
-
 const int MAXN = 1e5;
-vector<To> adj[MAXN + 5];
+set<int> adj[MAXN + 5];
 int n, m;
 
-void dfs(int u){
-    for(const To& p: adj[u]){
-        sy
+bool check1(){
+    for(int u = 1; u <= n; ++u){
+        if(adj[u].size() & 1) return false;
     }
+    return true;
 }
 
-bool solve(){
-    int start = 1;
-    for(; start <= n; ++start){
-        if(!adj[start].empty()) break;
+bool check2(){
+    for(int u = 1; u <= n; ++u){
+        if(adj[u].size() > 0) return false;
+    }
+    return true;
+}
+
+vector<int> res;
+void dfs(int u){
+    while(!adj[u].empty()){
+        int v = *adj[u].begin();
+        adj[u].erase(v);
+        adj[v].erase(u);
+
+        dfs(v);
     }
 
-    if(start == n + 1) return false;
-
-
+    res.push_back(u);
 }
 
 signed main(){
@@ -40,11 +46,26 @@ signed main(){
         int a, b;
         cin >> a >> b;
 
-        adj[a].push_back({b, i});
-        adj[b].push_back({a, i});
+        adj[a].insert(b);
+        adj[b].insert(a);
     }
 
-    solve();
+    if(!check1()){
+        cout << "IMPOSSIBLE\n";
+        return 0;
+    }
+
+    dfs(1);
+
+    if(!check2()){
+        cout << "IMPOSSIBLE\n";
+        return 0;
+    }
+
+
+    for(int node: res){
+        cout << node << ' ';
+    }
 
     return 0;
 }
