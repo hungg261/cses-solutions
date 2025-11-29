@@ -25,7 +25,7 @@ int level[MAXN + 5], it[MAXN + 5];
 
 void addEdge(int a, int b, int c){
     adj[a].emplace_back(b, c, (int)adj[b].size());
-    adj[b].emplace_back(a, 0, (int)adj[a].size() - 1);
+    adj[b].emplace_back(a, c, (int)adj[a].size() - 1);
 }
 
 bool bfs_findPath(int S, int T){
@@ -109,7 +109,6 @@ signed main(){
 
         origin[a].push_back(b);
         addEdge(a, b, 1);
-        addEdge(b, a, 1);
     }
 
     Dinic(S, T);
