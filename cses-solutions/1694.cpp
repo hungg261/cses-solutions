@@ -6,11 +6,13 @@ Time (YYYY-MM-DD-hh.mm.ss): 2025-11-29-20.05.14
 #include<bits/stdc++.h>
 using namespace std;
 
+#define int long long
+
 struct EdgeTo{
-    int v, w;
+    int v, w, rev;
 
     EdgeTo() = default;
-    EdgeTo(int _v, int _w): v(_v), w(_w){}
+    EdgeTo(int _v, int _w, int _rev): v(_v), w(_w), rev(_rev){}
 
     void assignTo(int& _v, int& _w) const{ _v = v; _w = w; }
 
@@ -22,40 +24,63 @@ struct EdgeTo{
 const int MAXN = 500, MAXM = 1000;
 
 int n, m;
-multiset<EdgeTo> adj[MAXN + 5], rev_adj[MAXN + 5];
+vector<EdgeTo> adj[MAXN + 5];
+int level[MAXN + 5], it[MAXN + 5];
+
+void addEdge(int u, int v, int w){
+    adj[u].push_back({v, w, (int)adj[v].size()});
+    adj[v].push_back({u, 0, (int)adj[u].size() - 1});
+}
 
 bool bfs(int S, int T){
+    fill(level + 1, level + n + 1, -1);
     queue<int> que;
     que.push(S);
+    level[S] = 0;
 
-    vector<int> par(n + 1, -1);
     while(!que.empty()){
-        int u = que.front();
-        que.pop();
-
-        for(const EdgeTo& p: adj[u]){
-            int v, w; p.assignTo(v, w);
-            if(w <= 0) continue;
-
-            if(v == T){
-                while(v != -1){
-                    rev_adj[]
-                    v = par[v];
-                }
-                return true;
-            }
-            else{
-                par[v] = u;
-                que.push(v);
+        int u = que.front(); que.pop();
+        for(const EdgeTo& e: adj[u]){
+            if(e.w > 0 && level[e.v] < 0){
+                level[e.v] = level[u] + 1;
+                que.push(e.v);
             }
         }
     }
+
+    return level[T] >= 0;
+}
+
+int dfs(int u, int flow, int T){
+    if(u == T){
+        return flow;
+    }
+
+    for(int &i = it[u]; i < (int)adj[u].size(); ++i){
+        EdgeTo& e = adj[u][i];
+        if(e.w > 0 && level[u] + 1 == level[e.v]){
+            int pushed = dfs(e.v, min(flow, e.w), T);
+            if(pushed > 0){
+                e.w -= pushed;
+                adj[e.v][e.rev].w += pushed;
+                return pushed;
+            }
+        }
+    }
+
+    return 0;
 }
 
 void solve(int S, int T){
+    int ans = 0;
     while(bfs(S, T)){
-
+        fill(it + 1, it + n + 1, 0);
+        while(int pushed = dfs(S, INT_MAX, T)){
+            ans += pushed;
+        }
     }
+
+    cout << ans << '\n';
 }
 
 signed main(){
@@ -68,8 +93,7 @@ signed main(){
         int a, b, c;
         cin >> a >> b >> c;
 
-        adj[a].insert({b, c});
-        rev_adj[b].insert({a, c});
+        addEdge(a, b, c);
     }
 
     solve(1, n);
