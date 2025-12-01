@@ -1,7 +1,7 @@
 /******************************************************************************
-Link: https://cses.fi/problemset/task/1695
-Code: 1695
-Time (YYYY-MM-DD-hh.mm.ss): 2025-11-29-22.58.14
+Link: https://cses.fi/problemset/task/1711
+Code: 1711
+Time (YYYY-MM-DD-hh.mm.ss): 2025-12-01-10.30.58
 *******************************************************************************/
 #include<bits/stdc++.h>
 using namespace std;
@@ -59,7 +59,7 @@ struct MaxFlow{
         for(int& i = it[u]; i < (int)adj[u].size(); ++i){
             EdgeTo& e = adj[u][i];
 
-            if(e.cap > 0 && level[u] + 1 == level[e.v]){
+            if(e.cap > 0){
                 int pushed = dfs_sendFlow(e.v, min(flow, e.cap), T);
                 if(pushed > 0){
                     e.cap -= pushed;
@@ -70,32 +70,6 @@ struct MaxFlow{
         }
 
         return 0;
-    }
-
-    vector<pair<int, int>> minCut(int S, int T, const vector<pair<int, int>>& edges){
-        vector<bool> reachable(n + 1);
-
-        queue<int> que;
-        que.push(S);
-        reachable[S] = true;
-
-        while(!que.empty()){
-            int u = que.front(); que.pop();
-            for(const EdgeTo& e: adj[u]){
-                if(e.cap > 0 && !reachable[e.v]){
-                    reachable[e.v] = true;
-                    que.push(e.v);
-                }
-            }
-        }
-
-        vector<pair<int, int>> res;
-        for(const pair<int, int>& p: edges){
-            if(reachable[p.first] ^ reachable[p.second]){
-                res.push_back(p);
-            }
-        }
-        return res;
     }
 
     int getFlow(int S, int T){
@@ -111,25 +85,21 @@ struct MaxFlow{
 
 signed main(){
     ios_base::sync_with_stdio(0); cin.tie(0);
-    //freopen("1695.INP","r",stdin);
-    //freopen("1695.OUT","w",stdout);
+    //freopen("1711.INP","r",stdin);
+    //freopen("1711.OUT","w",stdout);
     int n, m;
     cin >> n >> m;
 
     MaxFlow G(n);
-    vector<pair<int, int>> edges;
-    for(int i = 1; i <= m; ++i){
+    while(m--){
         int a, b;
         cin >> a >> b;
 
-        G.addEdge(a, b, 1, false);
-        edges.emplace_back(a, b);
+        G.addEdge(a, b, 1);
     }
 
-    cout << G.getFlow(1, n) << '\n';
-    for(const pair<int, int>& p: G.minCut(1, n, edges)){
-        cout << p.first << ' ' << p.second << '\n';
-    }
+    int ans = G.getFlow(1, n);
+    cout << ans << '\n';
 
     return 0;
 }
