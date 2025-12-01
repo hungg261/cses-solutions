@@ -6,7 +6,6 @@ Time (YYYY-MM-DD-hh.mm.ss): 2025-11-30-02.31.11
 #include<bits/stdc++.h>
 using namespace std;
 
-
 //#define int long long
 
 struct EdgeTo{
@@ -53,7 +52,7 @@ bool bfs_findPath(int S, int T){
 
 int match[MAXN + 5];
 int dfs_sendFlow(int u, int flow, int T){
-    if(u == T) return flow;
+    if(u == T || flow == 0) return flow;
 
     for(int &i = it[u]; i < (int)adj[u].size(); ++i){
         EdgeTo& e = adj[u][i];
