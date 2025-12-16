@@ -1,139 +1,91 @@
 /******************************************************************************
 Link: https://cses.fi/problemset/task/3356
 Code: 3356
-Time (YYYY-MM-DD-hh.mm.ss): 2025-09-30-15.28.31
+Time (YYYY-MM-DD-hh.mm.ss): 2025-12-16-20.59.03
 *******************************************************************************/
 #include<bits/stdc++.h>
 using namespace std;
 
-const int MAXN = 2e5;
-set<int> pos[MAXN * 2 + 1];
-vector<int> values;
-vector<tuple<int, int, int>> queries;
-int n, q, arr[MAXN + 5];
+const int MAXN = 2e5, MAXQ = 2e5, INF = 1e9;
+struct Query{
+    int type, a, b;
 
-void compress(){
-    sort(begin(values), end(values));
-    values.erase(unique(begin(values), end(values)), end(values));
-}
-
-int getval(int value){
-    return lower_bound(begin(values), end(values), value) - begin(values);
-}
-
-struct SegmentTree{
-    struct Node{
-        int value, idx;
-
-        static Node Identity(){
-            Node res;
-            res.value = 1e9;
-            res.idx = -1;
-
-            return res;
-        }
-
-        void renew(){
-            if(idx == -1) return;
-
-            int val = getval(arr[idx]);
-            auto nxt = pos[val].upper_bound(idx);
-            value = nxt == pos[val].end() ? n + 1 : *nxt;
-        }
-
-        Node mergeUpdate(Node& other){
-            this->renew();
-            other.renew();
-
-            Node res;
-            if(this->value < other.value){
-                res.value = this->value;
-                res.idx = this->idx;
-            }
-            else{
-                res.value = other.value;
-                res.idx = other.idx;
-            }
-
-            return res;
-        }
-
-        Node merge(Node& other){
-            Node res;
-            if(this->value < other.value){
-                res.value = this->value;
-                res.idx = this->idx;
-            }
-            else{
-                res.value = other.value;
-                res.idx = other.idx;
-            }
-
-            return res;
-        }
-    };
-
-    vector<Node> nodes;
-
-    SegmentTree(){
-        nodes.resize(n * 2 + 1);
-    }
-
-    void build(){
-        for(int i = 0; i < n; ++i){
-            nodes[i + n].idx = i + 1;
-            nodes[i + n].renew();
-        }
-
-        for(int id = n - 1; id > 0; --id){
-            nodes[id] = nodes[id << 1].merge(nodes[id << 1 | 1]);
-        }
-//        cerr << "nodes:\n";
-//        for(int id = 0; id < n * 2; ++id){
-//            cerr << id << ": " << nodes[id].value << '\n';
-//        }
-    }
-
-    void update(int idx, int value){
-        pos[getval(arr[idx])].erase(idx);
-        arr[idx] = value;
-        int id = idx - 1 + n;
-
-        int val = getval(value);
-        pos[getval(value)].insert(idx);
-        auto nxt = pos[val].upper_bound(idx);
-        if(nxt == pos[val].end()) nodes[id].value = n + 1;
-        else nodes[id].value = *nxt;
-
-        while(id > 1){
-            id >>= 1;
-            nodes[id] = nodes[id << 1].mergeUpdate(nodes[id << 1 | 1]);
-        }
-    }
-
-    Node get(int l, int r){
-        --l;
-        l += n; r += n;
-
-        Node res = Node::Identity();
-        while(l < r){
-            if(l & 1) res = res.mergeUpdate(nodes[l++]);
-            if(r & 1) res = res.mergeUpdate(nodes[--r]);
-            l >>= 1; r >>= 1;
-        }
-
-        return res;
-    }
-
-    bool distinct(int l, int r){
-        return get(l, r).value > r;
-    }
+    Query() = default;
+    Query(int _type, int _a, int _b): type(_type), a(_a), b(_b){}
 };
+
+void compress(vector<int>& arr){
+    sort(begin(arr), end(arr));
+    arr.erase(unique(begin(arr), end(arr)), end(arr));
+}
+
+int nodes[(MAXN + MAXQ) * 4 + 5];
+void update(int id, int l, int r, int idx, int val){
+    if(r < idx || idx < l) return;
+    if(l == r){
+        nodes[id] = val;
+        return;
+    }
+
+    int mid = (l + r) >> 1;
+    update(id << 1, l, mid, idx, val);
+    update(id << 1 | 1, mid + 1, r, idx, val);
+    nodes[id] = min(nodes[id << 1], nodes[id << 1 | 1]);
+}
+
+int get(int id, int l, int r, int u, int v){
+    if(r < u || v < l) return INF;
+    if(u <= l && r <= v) return nodes[id];
+
+    int mid = (l + r) >> 1;
+    return min(get(id << 1, l, mid, u, v), get(id << 1 | 1, mid + 1, r, u, v));
+}
+
+vector<Query> queries;
+vector<int> values;
+int MAXVAL;
+int n, q, arr[MAXN + 5];
+set<int> pos[MAXN + MAXQ + 5];
+
+int v(const int &val){ return lower_bound(begin(values), end(values), val) - begin(values) + 1; }
+
+void assign(int idx, int val){
+    auto curIt = pos[arr[idx]].find(idx);
+    if(curIt != pos[arr[idx]].end()){
+        int oldPrv = *prev(curIt), oldNxt = *next(curIt);
+        if(oldPrv) update(1, 1, MAXVAL + 1, oldPrv, oldNxt);
+        pos[arr[idx]].erase(curIt);
+    }
+
+
+    auto nxtIt = pos[val].upper_bound(idx);
+    int prvPos = *prev(nxtIt), nxtPos = *nxtIt;
+    if(prvPos) update(1, 1, MAXVAL + 1, prvPos, idx);
+    update(1, 1, MAXVAL + 1, idx, nxtPos);
+
+    pos[val].insert(idx);
+    arr[idx] = val;
+}
+
+bool check(int l, int r){
+    int minPos = get(1, 1, MAXVAL + 1, l, r);
+    return r < minPos;
+}
+
+void solve(){
+    for(const Query& query: queries){
+        if(query.type == 1){
+            assign(query.a, query.b);
+        }
+        else{
+            bool ok = check(query.a, query.b);
+            cout << (ok ? "YES" : "NO") << '\n';
+        }
+    }
+}
 
 signed main(){
     ios_base::sync_with_stdio(0); cin.tie(0);
-    // freopen("3356.INP","r",stdin);
-    // freopen("3356.OUT","w",stdout);
     cin >> n >> q;
     for(int i = 1; i <= n; ++i){
         cin >> arr[i];
@@ -141,43 +93,42 @@ signed main(){
     }
 
     for(int qr = 1; qr <= q; ++qr){
-        int type, x, y;
-        cin >> type >> x >> y;
-
-        queries.push_back({type, x, y});
-        values.push_back(y);
-    }
-
-    compress();
-    for(int i = 1; i <= n; ++i){
-        pos[getval(arr[i])].insert(i);
-    }
-
-//    for(int ele: values){
-//        cerr << ele << ": ";
-//        for(int id: pos[getval(ele)]) cerr << id << ' '; cerr << '\n';
-//    }
-
-    SegmentTree seg;
-    seg.build();
-    for(int qr = 0; qr < q; ++qr){
-        int type, x, y;
-        tie(type, x, y) = queries[qr];
+        int type;
+        cin >> type;
 
         if(type == 1){
-            seg.update(x, y);
+            int k, u;
+            cin >> k >> u;
+
+            values.push_back(u);
+            queries.emplace_back(type, k, u);
         }
         else{
-//            cout << (seg.get(x, y).value) << '\n';
-            cout << (seg.distinct(x, y) ? "YES" : "NO") << '\n';
+            int a, b;
+            cin >> a >> b;
+
+            queries.emplace_back(type, a, b);
         }
     }
 
-//    cerr << "----\n";
-//    for(int ele: values){
-//        cerr << ele << ": ";
-//        for(int id: pos[getval(ele)]) cerr << id << ' '; cerr << '\n';
-//    }
+    compress(values);
+    MAXVAL = values.size();
+
+    for(int vl = 1; vl <= MAXVAL; ++vl){
+        pos[vl].insert(0);
+        pos[vl].insert(INF);
+    }
+    for(int i = n; i >= 1; --i){
+        arr[i] = v(arr[i]);
+        assign(i, arr[i]);
+    }
+    for(Query &query: queries){
+        if(query.type == 1){
+            query.b = v(query.b);
+        }
+    }
+
+    solve();
 
     return 0;
 }
