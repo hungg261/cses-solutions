@@ -23,36 +23,28 @@ void build(int id, int l, int r){
     nodes[id] = nodes[id << 1] + nodes[id << 1 | 1];
 }
 
-void downInc(int id, int l, int r){
-    int& lz = lazyInc[id];
-    if(lz == 0) return;
+void down(int id, int l, int r){
+    int &lzS = lazySet[id], &lzI = lazyInc[id];
     int mid = (l + r) >> 1;
 
-    nodes[id << 1] += lz * (mid - l + 1);
-    lazyInc[id << 1] += lz;
+    if(lzS != 0){
+        nodes[id << 1] = lzS * (mid - l + 1);
+        lazySet[id << 1] = lzS;
+        lazyInc[id << 1] = 0;
 
-    nodes[id << 1 | 1] += lz * (r - mid);
-    lazyInc[id << 1 | 1] += lz;
+        nodes[id << 1 | 1] = lzS * (r - mid);
+        lazySet[id << 1 | 1] = lzS;
+        lazyInc[id << 1 | 1] = 0;
+    }
 
-    lz = 0;
-    pending[id] = 0;
-    pending[id << 1] = pending[id << 1 | 1] = 1;
-}
+    nodes[id << 1] += lzI * (mid - l + 1);
+    lazyInc[id << 1] += lzI;
 
-void downSet(int id, int l, int r){
-    int& lz = lazySet[id];
-    if(lz == 0) return;
-    int mid = (l + r) >> 1;
+    nodes[id << 1 | 1] += lzI * (r - mid);
+    lazyInc[id << 1 | 1] += lzI;
 
-    nodes[id << 1] = lz * (mid - l + 1);
-    lazySet[id << 1] = lz;
-
-    nodes[id << 1 | 1] = lz * (r - mid);
-    lazySet[id << 1 | 1] = lz;
-
-    lz = 0;
-    pending[id] = 0;
-    pending[id << 1] = pending[id << 1 | 1] = 2;
+    lzS = 0;
+    lzI = 0;
 }
 
 void Increase(int id, int l, int r, int u, int v, int x){
@@ -61,12 +53,10 @@ void Increase(int id, int l, int r, int u, int v, int x){
         nodes[id] += x * (r - l + 1);
         lazyInc[id] += x;
 
-        pending[id] = 1;
         return;
     }
 
-    downSet(id, l, r);
-    downInc(id, l, r);
+    down(id, l, r);
 
     int mid = (l + r) >> 1;
     Increase(id << 1, l, mid, u, v, x);
@@ -79,14 +69,12 @@ void Set(int id, int l, int r, int u, int v, int x){
     if(u <= l && r <= v){
         nodes[id] = x * (r - l + 1);
         lazySet[id] = x;
+        lazyInc[id] = 0;
 
-        pending[id] = 2;
-//        cerr << "pending: " << id << ' ' << l << ' ' << r << ' ' << u << ' ' << v << ' ' << x << " | " << pending[3] << '\n';
         return;
     }
 
-    downInc(id, l, r);
-    downSet(id, l, r);
+    down(id, l, r);
 
     int mid = (l + r) >> 1;
     Set(id << 1, l, mid, u, v, x);
@@ -98,14 +86,7 @@ int get(int id, int l, int r, int u, int v){
     if(r < u || v < l) return 0;
     if(u <= l && r <= v) return nodes[id];
 
-    if(pending[id] == 1){
-        downSet(id, l, r);
-        downInc(id, l, r);
-    }
-    else if(pending[id] == 2){
-        downInc(id, l, r);
-        downSet(id, l, r);
-    }
+    down(id, l, r);
 
     int mid = (l + r) >> 1;
     return get(id << 1, l, mid, u, v) + get(id << 1 | 1, mid + 1, r, u, v);
@@ -115,10 +96,6 @@ signed main(){
     ios_base::sync_with_stdio(0); cin.tie(0);
     //freopen("1735.INP","r",stdin);
     //freopen("1735.OUT","w",stdout);
-
-//    Increase(1, 1, 2, 1, 2, 5);
-//    Set(1, 1, 2, 1, 2, 2);
-//    cout << get(1, 1, 2, 1, 2) << '\n';
 
     cin >> n >> q;
     for(int i = 1; i <= n; ++i){
