@@ -32,7 +32,7 @@ struct FenwickTree{
         return res;
     }
 
-    int get(int l, int r){ return get(r) - get(l - 1); }
+    int get(int l, int r){ return l > r ? 0 : get(r) - get(l - 1); }
 
     void assign(int idx, int val){
         update(idx, val - get(idx, idx));
@@ -65,7 +65,10 @@ void solve(){
     vector<int> sta;
     FenwickTree fwt(n + 1);
     for(int i = n; i >= 1; --i){
-        while(!sta.empty() && arr[sta.back()] <= arr[i]) sta.pop_back();
+        while(!sta.empty() && arr[sta.back()] <= arr[i]){
+            fwt.assign(sta.back() - 1, 0);
+            sta.pop_back();
+        }
         int nxt = sta.empty() ? n + 1 : sta.back();
         fwt.assign(nxt - 1, arr[i] * (nxt - i));
 
