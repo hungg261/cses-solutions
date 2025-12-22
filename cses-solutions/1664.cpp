@@ -34,15 +34,15 @@ struct Movie{
 };
 
 const int MAXN = 2e5, MAXQ = 2e5, MAXVAL = 1e6;
-const int MAXK = __lg(MAXVAL) + 1;
+const int MAXK = __lg(MAXN) + 1;
 int n, q;
-pair<int, int> table[MAXVAL + 5][MAXK + 5];
+pair<int, int> table[MAXN + 5][MAXK + 5];
 
 Movie arr[MAXN + 5];
 vector<pair<int, int>> events[MAXVAL + 5];
 
 struct pqCmp{
-    operator () (const int& x, const int& y){
+    bool operator () (const int& x, const int& y){
         return arr[y] < arr[x];
     }
 };
@@ -56,29 +56,37 @@ void compute(){
             if(p.first == 0) pq.push(p.second);
         }
 
-        nxt[e] = pq.empty() ? MAXN + 1 : pq.top();
+        nxt[e] = pq.empty() ? n + 1 : pq.top();
     }
 
-    for(int i = 1; i <= MAXVAL; ++i){
-        table[i][0] = {arr[nxt[i]].r, 1};
+    for(int i = 1; i <= n; ++i){
+        table[i][0] = {nxt[arr[i].r], 1};
     }
+    table[n + 1][0] = {n + 1, 0};
+
     for(int j = 1; j <= MAXK; ++j){
-        for(int i = 1; i <= MAXVAL; ++i){
-            table[i][j] = make_pair(
-                arr[table[arr[table[i][j - 1].first].r][j - 1].first].r,
-                table[i][j - 1].second + table[arr[table[i][j - 1].first].r][j - 1].second
-            );
+        for(int i = 1; i <= n + 1; ++i){
+            table[i][j] = {
+                table[table[i][j - 1].first][j - 1].first,
+                table[i][j - 1].second + table[table[i][j - 1].first][j - 1].second
+            };
         }
     }
 }
 
 void query(int a, int b){
-    int res = 0;
+    int idx = nxt[a];
+    if(idx > n || arr[idx].r > b){
+        cout << "0\n";
+        return;
+    }
+
+    int res = 1;
     for(int bit = MAXK; bit >= 0; --bit){
-        const pair<int, int>& tb = table[a][bit];
-        if(tb.first <= b){
-            a = tb.first;
-            res += tb.second;
+        const pair<int, int>& p = table[idx][bit];
+        if(p.first <= n && arr[p.first].r <= b){
+            idx = p.first;
+            res += p.second;
         }
     }
 
@@ -92,9 +100,6 @@ signed main(){
     cin >> n >> q;
     for(int i = 1; i <= n; ++i){
         arr[i].input(i);
-
-//        events.emplace_back(arr[i].l, 0);
-//        events.emplace_back(arr[i].r, 1);
 
         events[arr[i].l].emplace_back(0, i);
         events[arr[i].r].emplace_back(1, i);
