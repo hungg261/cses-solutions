@@ -6,19 +6,6 @@ Time (YYYY-MM-DD-hh.mm.ss): 2025-12-22-15.17.02
 #include<bits/stdc++.h>
 using namespace std;
 
-struct Event{
-    int t;
-    int type;
-    int id;
-
-    Event() = default;
-    Event(int _t, int _type, int _id): t(_t), type(_type), id(_id){}
-
-    bool operator < (const Event& other){
-        return t < other.t || (t == other.t && type == 0);
-    }
-};
-
 struct Movie{
     int l, r;
     int id;
@@ -36,7 +23,7 @@ struct Movie{
 const int MAXN = 2e5, MAXQ = 2e5, MAXVAL = 1e6;
 const int MAXK = __lg(MAXN) + 1;
 int n, q;
-pair<int, int> table[MAXN + 5][MAXK + 5];
+int table[MAXN + 5][MAXK + 5];
 
 Movie arr[MAXN + 5];
 vector<pair<int, int>> events[MAXVAL + 5];
@@ -60,16 +47,13 @@ void compute(){
     }
 
     for(int i = 1; i <= n; ++i){
-        table[i][0] = {nxt[arr[i].r], 1};
+        table[i][0] = nxt[arr[i].r];
     }
-    table[n + 1][0] = {n + 1, 0};
+    table[n + 1][0] = n + 1;
 
     for(int j = 1; j <= MAXK; ++j){
         for(int i = 1; i <= n + 1; ++i){
-            table[i][j] = {
-                table[table[i][j - 1].first][j - 1].first,
-                table[i][j - 1].second + table[table[i][j - 1].first][j - 1].second
-            };
+            table[i][j] = table[table[i][j - 1]][j - 1];
         }
     }
 }
@@ -83,10 +67,10 @@ void query(int a, int b){
 
     int res = 1;
     for(int bit = MAXK; bit >= 0; --bit){
-        const pair<int, int>& p = table[idx][bit];
-        if(p.first <= n && arr[p.first].r <= b){
-            idx = p.first;
-            res += p.second;
+        int p = table[idx][bit];
+        if(p <= n && arr[p].r <= b){
+            idx = p;
+            res += 1 << bit;
         }
     }
 
