@@ -6,57 +6,67 @@ Time (YYYY-MM-DD-hh.mm.ss): 2025-12-23-09.27.02
 #include<bits/stdc++.h>
 using namespace std;
 
-const int MAXN = 2e5;
-int n;
+const int MAXN = 2e5, MAXLG = __lg(MAXN) + 1;
+int n, q;
+int h[MAXN + 5], table[MAXN + 5][MAXLG + 5];
 vector<int> adj[MAXN + 5];
 
-int sz[MAXN + 5];
-int outsz[MAXN + 5];
-
-int sum[2][MAXN + 5];
-
-void dfs1(int u, int prv){
-    sz[u] = 1;
+void dfs(int u, int prv){
     for(int v: adj[u]){
         if(v == prv) continue;
 
-        dfs1(v, u);
-        sz[u] += sz[v];
-
-        sum[0][u] += sz[v] * sz[v];
-    }
-    sum[1][u] = sz[u] * sz[u];
-}
-
-void dfs2(int u, int prv){
-    outsz[u]++;
-    for(int v: adj[u]){
-        if(v == prv) continue;
-
-        outsz[v] = outsz[u] + sz[u] - sz[v] - 1;
-        dfs2(v, u);
+        table[v][0] = u;
+        h[v] = h[u] + 1;
+        dfs(v, u);
     }
 }
 
-int res[MAXN + 5];
-void Try(int u, int prv){
+void compute(){
+    for(int j = 1; j <= MAXLG; ++j){
+        for(int i = 1; i <= n; ++i){
+            table[i][j] = table[table[i][j- 1]][j - 1];
+        }
+    }
+}
+
+int lift(int u, int s){
+    for(int bit = MAXLG; bit >= 0; --bit){
+        if(s >> bit & 1) u = table[u][bit];
+    }
+    return u;
+}
+
+int find_lca(int u, int v){
+    if(h[u] > h[v]) swap(u, v);
+    v = lift(v, h[v] - h[u]);
+
+    if(u == v) return u;
+
+    for(int bit = MAXLG; bit >= 0; --bit){
+        if(table[u][bit] != table[v][bit]){
+            u = table[u][bit];
+            v = table[v][bit];
+        }
+    }
+
+    return table[u][0];
+}
+
+int diff[MAXN + 5];
+void propagate(int u, int prv){
     for(int v: adj[u]){
         if(v == prv) continue;
 
-        if(u != 1) res[u] += outsz[prv] * sz[v];
-        res[u] += sum[1][u] - sum[0][u] >> 1;
-
-        Try(v, u);
+        propagate(v, u);
+        diff[u] += diff[v];
     }
-
-    res[u] += adj[u].size();
 }
 
 signed main(){
     ios_base::sync_with_stdio(0); cin.tie(0);
     //freopen("1136.INP","r",stdin);
     //freopen("1136.OUT","w",stdout);
-    cin >> n;
+    cin >> n >> q;
     for(int i = 1; i < n; ++i){
         int a, b;
         cin >> a >> b;
@@ -65,18 +75,24 @@ signed main(){
         adj[b].push_back(a);
     }
 
-    dfs1(1, 0);
-    dfs2(1, 0);
+    dfs(1, 0);
+    compute();
 
-    for(int u = 1; u <= n; ++u){
-        sz[u]--;
-        outsz[u]--;
+    for(int i = 1; i <= q; ++i){
+        int a, b;
+        cin >> a >> b;
+
+        int lca = find_lca(a, b);
+        diff[a]++;
+        diff[b]++;
+
+        diff[lca]--;
+        diff[table[lca][0]]--;
     }
 
-    Try(1, 0);
-
+    propagate(1, 0);
     for(int u = 1; u <= n; ++u){
-        cout << res[u] << ' ';
+        cout << diff[u] << ' ';
     }
 
     return 0;
