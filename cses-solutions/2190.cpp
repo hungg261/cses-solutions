@@ -1,53 +1,82 @@
 /******************************************************************************
 Link: https://cses.fi/problemset/task/2190
 Code: 2190
-Time (YYYY-MM-DD-hh.mm.ss): 2025-10-02-15.28.25
+Time (YYYY-MM-DD-hh.mm.ss): 2025-12-25-00.22.59
 *******************************************************************************/
 #include<bits/stdc++.h>
 using namespace std;
 
-#define int long long
+#define double long double
 
+namespace Geometry{
+
+const double EPS = 1e-9;
 struct Point{
-    int x, y;
+    double x, y;
 
-    Point() = default;
-    Point(int _x, int _y): x(_x), y(_y){}
+    Point(){}
+    Point(double _x, double _y): x(_x), y(_y){}
 
     void input(){
         cin >> x >> y;
     }
-};
 
-struct Triangle{
-    Point A, B, C;
-
-    Triangle() = default;
-    Triangle(Point _A, Point _B, Point _C): A(_A), B(_B), C(_C){}
-    Triangle(int x1, int y1, int x2, int y2, int x3, int y3){
-        A = Point(x1, y1); B = Point(x2, y2); C = Point(x3, y3);
+    Point operator + (const Point& other) const{
+        return {x + other.x, y + other.y};
     }
 
-    int Direction(){
-        int dir = (B.x - A.x) * (B.y + A.y) + (C.x - B.x) * (C.y + B.y) + (A.x - C.x) * (A.y + C.y);
-        return dir > 0 ? 1 : dir < 0 ? -1 : 0;
+    Point operator - (const Point& other) const{
+        return {x - other.x, y - other.y};
+    }
+
+    Point operator * (double k) const{
+        return {x * k, y * k};
     }
 };
 
-struct Segment{
-    Point A, B;
+double dot(Point a, Point b){
+    return a.x * b.x + a.y * b.y;
+}
 
-    bool intersect(const Segment& other){
-        bool ok1 = Triangle(A, B, other.A).Direction() * Triangle(A, B, other.B).Direction() <= 0;
-        bool ok2 = Triangle(other.A, other.B, A).Direction() * Triangle(other.A, other.B, B).Direction() <= 0;
-        return ok1 && ok2;
-    }
+double cross(Point a, Point b){
+    return a.x * b.y - a.y * b.x;
+}
 
-    void input(){
-        A.input();
-        B.input();
-    }
-};
+int sign(double x){
+    if(fabs(x) < EPS) return 0;
+    return x > 0 ? 1 : -1;
+}
+
+int orientation(Point a, Point b, Point c){
+    return sign(cross(b - a, c - a));
+}
+
+bool onSegment(Point p, Point A, Point B){
+    return orientation(p, A, B) == 0 &&
+        min(A.x, B.x) <= p.x && p.x <= max(A.x, B.x) &&
+        min(A.y, B.y) <= p.y && p.y <= max(A.y, B.y);
+}
+
+bool intersect(Point A, Point B, Point C, Point D){
+    int o1 = orientation(A, C, D), o2 = orientation(B, C, D);
+    int o3 = orientation(C, A, B), o4 = orientation(D, A, B);
+
+    if(o1 != o2 && o3 != o4) return true;
+
+    return onSegment(C, A, B) || onSegment(D, A, B) || onSegment(A, C, D) || onSegment(B, C, D);
+}
+
+}
+using namespace Geometry;
+void solve(){
+    Point A, B, C, D;
+    A.input();
+    B.input();
+    C.input();
+    D.input();
+
+    cout << (intersect(A, B, C, D) ? "YES\n" : "NO\n");
+}
 
 signed main(){
     ios_base::sync_with_stdio(0); cin.tie(0);
@@ -58,11 +87,7 @@ signed main(){
     cin >> t;
 
     while(t--){
-        Segment S1, S2;
-        S1.input();
-        S2.input();
-
-        cout << (S1.intersect(S2) ? "YES\n" : "NO\n");
+        solve();
     }
 
     return 0;
