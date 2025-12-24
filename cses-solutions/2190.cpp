@@ -68,6 +68,7 @@ bool intersect(Point A, Point B, Point C, Point D){
 
 }
 using namespace Geometry;
+
 void solve(){
     Point A, B, C, D;
     A.input();
