@@ -1,81 +1,51 @@
-/******************************************************************************
-Link: https://cses.fi/problemset/task/2184
-Code: 2184
-Time (YYYY-MM-DD-hh.mm.ss): 2025-12-31-12.50.12
-*******************************************************************************/
-#include<bits/stdc++.h>
+#include <bits/stdc++.h>
 using namespace std;
 
-//#define int long long
+#define ll long long
+#define FOR(i, x, y) for (int i = x; i < y; i++)
+#define arr array<int, 30>
 
-const int MAXN = 2e5, MAXLG = __lg(MAXN) + 1;
-const int MAXVAL = 1e9, LGVAL = __lg(MAXVAL) + 1;
-int sum_table[LGVAL + 1][MAXN + 5], min_table[LGVAL + 1][MAXN + 5][MAXLG + 1];
-int arr[MAXN + 5], n, q;
-int pre[MAXN + 5];
+const int mx = 2e5 + 5;
 
-void compute(){
-    for(int k = 0; k <= LGVAL; ++k){
-        for(int i = 1; i <= n; ++i){
-            sum_table[k][i] = sum_table[k][i - 1];
-            if(arr[i] < (1LL << k)){
-                sum_table[k][i] += arr[i];
-            }
+int n, q, A[mx]; ll sm[mx][30]; arr seg[mx * 2];
 
-            if((1LL << k) <= arr[i] && arr[i] <= (1LL << k + 1) - 1){
-                min_table[k][i][0] = arr[i];
+arr comb(arr &A, arr &B){
+	arr ret;
+    FOR(i, 0, 30) ret[i] = min(A[i], B[i]);
+    return ret;
+}
+arr qry(int l, int r){
+    arr ret; fill(ret.begin(), ret.end(), 2e9);
+    for (l += mx, r += mx; l <= r; r /= 2, l /= 2){
+        if (l % 2 == 1) ret = comb(ret, seg[l++]);
+        if (r % 2 == 0) ret = comb(seg[r--], ret);
+    }
+    return ret;
+}
+
+int main(){
+	ios_base::sync_with_stdio(0); cin.tie(0);
+    cin >> n >> q; memset(seg, 0x3f, sizeof(seg));
+    FOR(i, 1, n + 1){
+        int x; cin >> x;
+        int g = log2(x);
+        seg[i + mx][g] = x; sm[i][g] = x;
+    }
+    FOR(i, 1, n + 1) FOR(j, 0, 30) sm[i][j] += sm[i - 1][j];
+
+    for (int i = mx - 1; i; i--) seg[i] = comb(seg[i * 2], seg[i * 2 + 1]);
+
+    while (q--){
+        int l, r; cin >> l >> r;
+
+        arr bst = qry(l, r); ll tot = 0, ans = -1;
+        FOR(i, 0, 30){
+            if (tot + 1 < (1 << (i + 1)) and bst[i] > tot + 1){
+                ans = tot + 1;
+                break;
             }
-            else{
-                min_table[k][i][0] = MAXVAL;
-            }
+            tot += sm[r][i] - sm[l - 1][i];
         }
-
-        for(int j = 1; j <= MAXLG; ++j){
-            for(int i = 1; i + (1 << j) - 1 <= n; ++i){
-                min_table[k][i][j] = min(min_table[k][i][j - 1], min_table[k][i + (1 << j - 1)][j - 1]);
-            }
-        }
+        cout<<(ans == -1 ? tot + 1 : ans)<<"\n";
     }
-}
-
-int query_sum(int k, int l, int r){
-    return sum_table[k][r] - sum_table[k][l - 1];
-}
-
-int query_min(int k, int l, int r){
-    int bit = __lg(r - l + 1);
-    return min(min_table[k][l][bit], min_table[k][r - (1 << bit) + 1][bit]);
-}
-
-int query(int l, int r){
-    for(int k = 0; k <= LGVAL; ++k){
-        int C = query_sum(k, l, r);
-        if(C >= (1LL << k + 1) - 1 ||
-           query_min(k, l, r) <= C + 1){}
-        else{
-            return C + 1;
-        }
-    }
-
-    return pre[r] - pre[l - 1] + 1;
-}
-
-signed main(){
-    ios_base::sync_with_stdio(0); cin.tie(0);
-    cin >> n >> q;
-    for(int i = 1; i <= n; ++i){
-        cin >> arr[i];
-        pre[i] = pre[i - 1] + arr[i];
-    }
-
-    compute();
-
-    while(q--){
-        int a, b;
-        cin >> a >> b;
-
-        cout << query(a, b) << '\n';;
-    }
-
-    return 0;
 }
