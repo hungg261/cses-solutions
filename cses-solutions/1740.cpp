@@ -7,20 +7,13 @@ Time (YYYY-MM-DD-hh.mm.ss): 2025-12-26-15.02.15
 #define int long long
 using namespace std;
 
-const int OFFSET = 1e6, MAXVAL = 1e6;
-const int MAXN = 1e5;
-vector<int> values;
-vector<array<int, 4>> inp;
-
-int v(int value){
-    return lower_bound(begin(values), end(values), value) - begin(values) + 1;
-}
-
 struct FenwickTree{
     int n;
     vector<int> BIT;
 
-    FenwickTree(int sz = 0): n(sz){ BIT.resize(sz + 1, 0); }
+    FenwickTree(int sz = 0): n(sz){
+        BIT.resize(sz + 1, 0);
+    }
 
     void update(int idx, int val){
         for(int i = idx; i <= n; i += i & -i){
@@ -36,8 +29,17 @@ struct FenwickTree{
         return res;
     }
 
-    int get(int l, int r){ return get(r) - get(l - 1); }
+    int get(int l, int r){
+        return get(r) - get(l - 1);
+    }
 };
+
+int priority(int type){
+    if(type == 1) return 1;
+    if(type == 0) return 2;
+    if(type == -1) return 3;
+    throw "wtf";
+}
 
 struct State{
     int x, y1, y2;
@@ -45,45 +47,22 @@ struct State{
 
     State(int _x, int _y1, int _y2, int _type): x(_x), y1(_y1), y2(_y2), type(_type){}
 
-    void output(){
-        cerr << x << ' ' << y1 << ' ' << y2 << '\n';
-    }
-
-    bool operator < (const State& other){
-        return this->x < other.x || (this->x == other.x && this->type == 0);
+    bool operator<(const State& other){
+        return x < other.x || (x == other.x && priority(type) < priority(other.type));
     }
 };
-int n;
-vector<State> states;
 
-void solve(){
-    FenwickTree fwt(MAXVAL + 5);
-    int ans = 0;
-    for(const State& cur: states){
-        if(cur.type == 0){
-            ans += fwt.get(cur.y1, cur.y2);
-        }
-        else if(cur.type == 1){
-            fwt.update(cur.y1, 1);
-        }
-        else if(cur.type == -1){
-            fwt.update(cur.y1, -1);
-        }
-    }
+int solve(const vector<array<int, 4>>& segments){
+    vector<int> values;
+    vector<State> states;
 
-    cout << ans << '\n';
-}
-
-signed main(){
-    ios_base::sync_with_stdio(0); cin.tie(0);
-    cin >> n;
-    for(int i = 1; i <= n; ++i){
-        int x1, y1, x2, y2;
-        cin >> x1 >> y1 >> x2 >> y2;
+    for(const auto& seg: segments){
+        int x1 = seg[0], y1 = seg[1], x2 = seg[2], y2 = seg[3];
 
         if(y1 == y2){
-            inp.push_back({x1, y1, y1, 1});
-            inp.push_back({x2, y1, y1, -1});
+            if(x1 > x2) swap(x1, x2);
+            states.emplace_back(x1, y1, y1, 1);
+            states.emplace_back(x2, y1, y1, -1);
 
             values.push_back(x1);
             values.push_back(x2);
@@ -91,7 +70,7 @@ signed main(){
         }
         else{
             if(y1 > y2) swap(y1, y2);
-            inp.push_back({x1, y1, y2, 0});
+            states.emplace_back(x1, y1, y2, 0);
 
             values.push_back(x1);
             values.push_back(y1);
@@ -99,16 +78,48 @@ signed main(){
         }
     }
 
-    sort(begin(values), end(values));
-    values.erase(unique(begin(values), end(values)), end(values));
+    sort(values.begin(), values.end());
+    values.erase(unique(values.begin(), values.end()), values.end());
 
-    for(const auto& qr: inp){
-        if(qr[3] == 0) states.emplace_back(v(qr[0]), v(qr[1]), v(qr[2]), 0);
-        else states.emplace_back(v(qr[0]), v(qr[1]), v(qr[2]), qr[3]);
+    auto v = [&](int value){
+        return lower_bound(values.begin(), values.end(), value) - values.begin() + 1;
+    };
+
+    for(auto& st: states){
+        st.x = v(st.x);
+        st.y1 = v(st.y1);
+        st.y2 = v(st.y2);
     }
-    sort(begin(states), end(states));
 
-    solve();
+    sort(states.begin(), states.end());
 
+    FenwickTree fwt(values.size() + 5);
+    int ans = 0;
+
+    for(const State& cur: states){
+        if(cur.type == 0){
+            ans += fwt.get(cur.y1, cur.y2);
+        }
+        else{
+            fwt.update(cur.y1, cur.type);
+        }
+    }
+
+    return ans;
+}
+
+signed main(){
+    int n;
+    cin >> n;
+
+    vector<array<int, 4>> arr;
+    for(int i = 1; i <= n; ++i){
+        int x1, y1, x2, y2;
+        cin >> x1 >> y1 >> x2 >> y2;
+
+        arr.push_back({x1, y1, x2, y2});
+    }
+
+    cout << solve(arr) << '\n';
     return 0;
 }
