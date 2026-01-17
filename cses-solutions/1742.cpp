@@ -8,165 +8,195 @@ using namespace std;
 
 #define int long long
 
-struct Fenwick2DCompressed {
+struct FenwickTree{
     int n;
-    vector<vector<int>> ys;
-    vector<vector<long long>> B0, B1, B2, B3;
+    vector<int> BIT;
 
-    Fenwick2DCompressed(int n_) : n(n_) {
-        ys.resize(n + 1);
-        B0.resize(n + 1);
-        B1.resize(n + 1);
-        B2.resize(n + 1);
-        B3.resize(n + 1);
+    FenwickTree(int sz = 0): n(sz){
+        BIT.resize(sz + 1, 0);
     }
 
-    static inline int lowbit(int x) {
-        return x & -x;
-    }
-
-    // -------- OFFLINE PHASE --------
-    // register all (x,y) used in updates
-    void fake_update(int x, int y) {
-        for (int i = x; i <= n; i += lowbit(i))
-            ys[i].push_back(y);
-    }
-
-    void fake_range_add(int x1, int y1, int x2, int y2) {
-        fake_update(x1,     y1);
-        fake_update(x1,     y2 + 1);
-        fake_update(x2 + 1, y1);
-        fake_update(x2 + 1, y2 + 1);
-    }
-
-    // must be called once before real updates/queries
-    void build() {
-        for (int i = 1; i <= n; i++) {
-            auto &v = ys[i];
-            sort(v.begin(), v.end());
-            v.erase(unique(v.begin(), v.end()), v.end());
-            int sz = v.size() + 1;
-            B0[i].assign(sz, 0);
-            B1[i].assign(sz, 0);
-            B2[i].assign(sz, 0);
-            B3[i].assign(sz, 0);
+    void update(int idx, int val){
+        for(int i = idx; i <= n; i += i & -i){
+            BIT[i] += val;
         }
     }
 
-    int get_y(int x, int y) const {
-        return lower_bound(ys[x].begin(), ys[x].end(), y) - ys[x].begin() + 1;
-    }
-
-    // -------- INTERNAL BIT UPDATE --------
-    void upd(int x, int y, long long v) {
-        for (int i = x; i <= n; i += lowbit(i)) {
-            int yi = get_y(i, y);
-            for (int j = yi; j < (int)B0[i].size(); j += lowbit(j)) {
-                B0[i][j] += v;
-                B1[i][j] += x * v;
-                B2[i][j] += y * v;
-                B3[i][j] += x * y * v;
-            }
-        }
-    }
-
-    // prefix sum [1..x][1..y]
-    long long qry(int x, int y) const {
-        long long res = 0;
-        for (int i = x; i > 0; i -= lowbit(i)) {
-            int yi = upper_bound(ys[i].begin(), ys[i].end(), y) - ys[i].begin();
-            for (int j = yi; j > 0; j -= lowbit(j)) {
-                res += (x + 1LL) * (y + 1LL) * B0[i][j]
-                     - (y + 1LL) * B1[i][j]
-                     - (x + 1LL) * B2[i][j]
-                     + B3[i][j];
-            }
+    int get(int idx){
+        int res = 0;
+        for(int i = idx; i > 0; i -= i & -i){
+            res += BIT[i];
         }
         return res;
     }
 
-    // -------- PUBLIC API --------
-
-    // add v to rectangle (x1,y1) -> (x2,y2)
-    void range_add(int x1, int y1, int x2, int y2, long long v) {
-        upd(x1,     y1,     v);
-        upd(x1,     y2 + 1, -v);
-        upd(x2 + 1, y1,     -v);
-        upd(x2 + 1, y2 + 1, v);
-    }
-
-    // sum of rectangle (x1,y1) -> (x2,y2)
-    long long range_sum(int x1, int y1, int x2, int y2) const {
-        return qry(x2, y2)
-             - qry(x1 - 1, y2)
-             - qry(x2, y1 - 1)
-             + qry(x1 - 1, y1 - 1);
+    int get(int l, int r){
+        return get(r) - get(l - 1);
     }
 };
 
-const int dx[4] = {-1, 0, 1, 0}, dy[4] = {0, 1, 0, -1};
-const string DIR = "URDL";
-
-int dir(char c){
-    return find(begin(DIR), end(DIR), c) - begin(DIR);
+int priority(int type){
+    if(type == 1) return 1;
+    if(type == 0) return 2;
+    if(type == -1) return 3;
+    throw "wtf";
 }
 
-pair<int, int> shift(int x, int y, int d, int steps){
-    return {x + dx[d] * steps, y + dy[d] * steps};
+struct State{
+    int x, y1, y2;
+    int type;
+
+    State(int _x, int _y1, int _y2, int _type): x(_x), y1(_y1), y2(_y2), type(_type){}
+
+    bool operator < (const State& other) const {
+        return x < other.x || (x == other.x && priority(type) < priority(other.type));
+    }
+};
+
+int solve(const vector<array<int, 4>>& segments){
+    vector<int> values;
+    vector<State> states;
+
+    for(const auto& seg: segments){
+        int x1 = seg[0], y1 = seg[1], x2 = seg[2], y2 = seg[3];
+
+        if(y1 == y2){
+            if(x1 > x2) swap(x1, x2);
+            states.emplace_back(x1, y1, y1, 1);
+            states.emplace_back(x2, y1, y1, -1);
+
+            values.push_back(x1);
+            values.push_back(x2);
+            values.push_back(y1);
+        }
+        else{
+            if(y1 > y2) swap(y1, y2);
+            states.emplace_back(x1, y1, y2, 0);
+
+            values.push_back(x1);
+            values.push_back(y1);
+            values.push_back(y2);
+        }
+    }
+
+    sort(values.begin(), values.end());
+    values.erase(unique(values.begin(), values.end()), values.end());
+
+    auto v = [&](int value){
+        return lower_bound(values.begin(), values.end(), value) - values.begin() + 1;
+    };
+
+    for(auto& st: states){
+        st.x = v(st.x);
+        st.y1 = v(st.y1);
+        st.y2 = v(st.y2);
+    }
+
+    sort(states.begin(), states.end());
+
+    FenwickTree fwt(values.size() + 5);
+    int ans = 0;
+
+    for(const State& cur: states){
+        if(cur.type == 0){
+            ans += fwt.get(cur.y1, cur.y2);
+        }
+        else{
+            fwt.update(cur.y1, cur.type);
+        }
+    }
+
+    return ans;
 }
 
-const int MAX = 1e12;
-void solve(){
-    Fenwick2DCompressed fwt(100);
+pair<int, int> shift(int x, int y, char d, int s){
+    if(d == 'U') return {x, y + s};
+    if(d == 'D') return {x, y - s};
+    if(d == 'L') return {x - s, y};
+    if(d == 'R') return {x + s, y};
+    throw "wtf";
+}
 
-    int n;
-    cin >> n;
-    vector<pair<char, int>> queries;
+vector<pair<char, int>> queries;
+int n, total = 0;
 
+int check(int mid){
+    vector<array<int, 4>> lines;
+
+    int idx = 0;
     int cx = 0, cy = 0;
-    for(int i = 1; i <= n; ++i){
-        char dr; int st;
-        cin >> dr >> st;
+    int traveled = 0;
+
+    auto handle = [&](char d, int s, bool check = true){
+        if(check && traveled + s >= mid) return false;
+        traveled += s;
 
         int nx, ny;
-        tie(nx, ny) = shift(cx, cy, dir(dr), st);
+        tie(nx, ny) = shift(cx, cy, d, s);
 
-        int x = cx, y = cy;
-        if(x > nx || y > ny){
-            swap(x, nx);
-            swap(y, ny);
-        }
+//        cerr << cx << ' ' << cy << " | " << nx << ' ' << ny << '\n';
 
-        fwt.fake_range_add(x, y, nx, ny);
-        queries.emplace_back(dr, st);
+        lines.push_back({cx, cy, nx, ny});
+        tie(cx, cy) = {nx, ny};
+
+        return true;
+    };
+
+    for(; idx < n; ++idx){
+        char d; int s;
+        tie(d, s) = queries[idx];
+
+        if(!handle(d, s)) break;
     }
 
-    fwt.build();
+    char d = queries[idx].first;
+    handle(d, mid - traveled, false);
 
-    cx = cy = 0;
-    for(const pair<char, int>& p: queries){
-        char dr; int st;
-        tie(dr, st) = p;
-
-        int nx, ny;
-        tie(nx, ny) = shift(cx, cy, dir(dr), st);
-
-        int x = cx, y = cy;
-        if(x > nx || y > ny){
-            swap(x, nx);
-            swap(y, ny);
-        }
-
-        fwt.range_add(x, y, nx, ny, 1);
-    }
-
-    cout << fwt.range_sum(1, 1, 10, 10) << '\n';
+    return solve(lines) - idx;
 }
 
-signed main(){
-    ios_base::sync_with_stdio(0); cin.tie(0);
+int dir(char d){
+    if(d == 'U') return 0;
+    if(d == 'R') return 1;
+    if(d == 'D') return 2;
+    if(d == 'L') return 3;
+    throw "wtf2";
+}
 
-    solve();
+signed main() {
+    ios_base::sync_with_stdio(0); cin.tie(0);
+    cin >> n;
+
+    int res = -1;
+    for(int i = 1; i <= n; ++i){
+        char d; int s;
+        cin >> d >> s;
+
+
+        if(i > 1 && res == -1 && (dir(d) + dir(queries.back().first)) % 2 == 0){
+            res = total;
+        }
+        total += s;
+        queries.emplace_back(d, s);
+    }
+
+    if(res != -1){
+        cout << res << '\n';
+        return 0;
+    }
+
+    int l = 1, r = total;
+    while(l <= r){
+        int mid = (l + r) >> 1;
+        if(check(mid) > 0){
+            res = mid;
+            r = mid - 1;
+        }
+        else l = mid + 1;
+    }
+
+    cout << res << '\n';
 
     return 0;
 }
+
