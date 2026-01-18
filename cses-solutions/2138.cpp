@@ -10,16 +10,21 @@ const int MAXN = 5e4;
 int n, m;
 vector<int> adj[MAXN + 5];
 
-int dp[MAXN + 5];
+bool vis[MAXN + 5];
+int visited = 0;
 
+int res[MAXN + 5];
 void dfs(int u){
-    if(dp[u] != -1) return;
-    dp[u] = 1;
+    if(vis[u]) return;
+    vis[u] = true;
+
 
     for(int v: adj[u]){
-        if(dp[v] == -1) dfs(v);
-        dp[u] += dp[v];
+        dfs(v);
     }
+
+    ++visited;
+    res[u] = visited;
 }
 
 signed main(){
@@ -32,13 +37,12 @@ signed main(){
         adj[a].push_back(b);
     }
 
-    memset(dp, -1, sizeof dp);
     for(int u = 1; u <= n; ++u){
         dfs(u);
     }
 
     for(int u = 1; u <= n; ++u){
-        cout << dp[u] << ' ';
+        cout << res[u] << ' ';
     }
 
     return 0;
