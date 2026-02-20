@@ -7,6 +7,42 @@ const int BASE = 31, MOD = 1e9 + 9;
 int n, hashes[MAXN + 5], rev_hashes[MAXN + 5], powhash[MAXN + 5];
 string s, rev_s;
 
+int nodes[MAXN * 4 + 5], lazy[MAXN * 4 + 5];
+
+int getR(int L, int l, int r){
+    return L + (r - l) * 2;
+}
+
+void apply(int id, int l, int r, int lz){
+    if(lz * 2 > nodes[id]){
+        nodes[id] = lz * 2;
+    }
+
+    lazy[id] = max(lazy[id], lz);
+}
+
+void down(int id, int l, int r){
+    int& lz = lazy[id];
+    if(lz == 0) return;
+
+    int mid = (l + r) >> 1;
+    apply(id << 1, l, mid, lz)
+}
+
+void update(int id, int l, int r, int u, int v, int val){
+    if(v < l || r < u) return;
+    if(u <= l && r <= v){
+        apply(id, l, r, val);
+        return;
+    }
+
+    int mid = (l + r) >> 1;
+    update(id << 1, l, mid, u, v, val);
+    update(id << 1 | 1, mid + 1, r, u, v, val);
+    nodes[id] = max(nodes[id << 1], nodes[id << 1 | 1]);
+}
+
+
 void compute(){
     powhash[0] = 1 % MOD;
     for(int i = 1; i <= n; ++i){
